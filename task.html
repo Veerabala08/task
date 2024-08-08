@@ -28,20 +28,11 @@
 
         #products-container {
             display: grid;
+            justify-items: center; 
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-         /* justify-content: center;  */
-         column-gap: 10xp;
+         /* column-gap: 20xp; */
    
         }
-
-        @media screen and (max-width: 570px) {
-            #products-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-}
 
         .card {
             border: 1px solid #ddd;
