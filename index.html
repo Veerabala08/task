@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Cards</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .sort-controls {
+            margin-bottom: 20px;
+        }
+
+        .sort-controls label,
+        .sort-controls select {
+            margin-right: 10px;
+            padding: 7px;
+            border-radius: 5px;
+        }
+
+        #products-container {
+            display: grid;
+            justify-items: center; 
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+         /* column-gap: 20xp; */
+   
+        }
+
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin: 10px;
+            padding: 15px;
+            width: 200px;
+            float: left;
+            text-align: center;
+            height: 500px;
+            }
+
+        .card img {
+            width: 100%;
+            height: 200px;
+            max-height: 250px;
+            border-radius: 8px;
+        }
+
+        .card h3 {
+            font-size: 1.2em;
+            margin: 10px 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            /* number of lines to show */
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            text-align: left;
+        }
+
+        .card p {
+            color: #555;
+            overflow: hidden;
+            /* text-align: left; */
+            text-align: justify;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 6;
+            /* number of lines to show */
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .pagination {
+            clear: both;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .pagination button {
+            margin: 0 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button{
+            border-radius: 5px;
+            background-color: #3498db;
+            font-weight: bold;
+        }
+
+   /* Loader styles */
+#loader {
+    display: none;
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    border: 10px solid #f3f3f3;
+    border-top: 10px solid #3498db;
+    border-radius: 50%;
+    width: 70px;
+    height: 70px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Content hidden while loader is visible */
+.hide-content {
+    display: none;
+}
+
+    </style>
+</head>
+<body>
+    <div id="loader"></div>
+    <div class="container">
+        <h2>Products List</h2>
+        <hr>
+        <div class="sort-controls">
+            <label for="sort-by"><strong>Sort By</strong> </label>
+            <select id="sort-by" onchange="sortProducts()">
+                <option value="category">Category</option>
+                <option value="price">Price</option>
+                <option value="count">Count</option>
+            </select>
+        </div>
+
+        <div id="products-container"></div>
+        <div class="pagination">
+            <button id="prev" onclick="changePage(-1)">Previous</button>
+            <button id="next" onclick="changePage(1)">Next</button>
+            <span id="page-info"></span>
+        </div>
+    </div>
+
+    <script>
+const api = "https://fakestoreapi.com/products"; 
+const itemsPerPage = 5;
+let currentPage = 1;
+let totalPages = 1;
+let products = [];
+let sortBy = 'category'; 
+
+async function fetchData() {
+    try {
+        showLoader();
+        const response = await fetch(api);
+        products = await response.json();
+        totalPages = Math.ceil(products.length / itemsPerPage);
+        sortProducts(); 
+        updateCards();
+        updatePagination();
+    } catch (error) {
+        console.log("Error fetching data:", error);
+    } finally {
+        hideLoader();
+    }
+}
+
+function sortProducts() {
+    sortBy = document.getElementById('sort-by').value;
+
+    products.sort((a, b) => {
+        if (sortBy === 'price') {
+            return a.price - b.price;
+        } else if (sortBy === 'category') {
+            return a.category.localeCompare(b.category);
+        } else if (sortBy === 'count') {
+            return (a.rating?.count || 0) - (b.rating?.count || 0);
+        } else {
+            return a.id - b.id;
+        }
+    });
+
+    updateCards();
+}
+
+function updateCards() {
+    const container = document.getElementById('products-container');
+    container.innerHTML = ''; // Clear existing cards
+
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, products.length);
+    const pageProducts = products.slice(startIndex, endIndex);
+
+    pageProducts.forEach(product => {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        card.innerHTML = `
+            <img src="${product.image || 'placeholder.jpg'}" alt="${product.title || 'No Image'}">
+            <h3>${product.title || 'No Title'}</h3>
+            <p><strong>Price:</strong> $${product.price || 'N/A'}</p>
+            <p><strong>Category:</strong> ${product.category || 'N/A'}</p>
+            <p><strong>Rating:</strong> ${product.rating?.rate || 'N/A'} (Count: ${product.rating?.count || 'N/A'})</p>
+            <p><strong>Description</strong><br>${product.description || 'No Description'}</p>
+        `;
+
+        container.appendChild(card);
+    });
+}
+
+function updatePagination() {
+    const prevButton = document.getElementById('prev');
+    const nextButton = document.getElementById('next');
+    const pageInfo = document.getElementById('page-info');
+
+    prevButton.disabled = currentPage === 1;
+    nextButton.disabled = currentPage === totalPages;
+    pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+}
+
+async function changePage(direction) {
+    const newPage = currentPage + direction;
+    if (newPage >= 1 && newPage <= totalPages) {
+        currentPage = newPage;
+        showLoader(); 
+        try {
+            await fetchData(); 
+        } finally {
+            hideLoader(); 
+        }
+    }
+}
+
+function showLoader() {
+    document.getElementById('loader').style.display = 'block';
+    document.querySelector('.container').classList.add('hide-content');
+}
+
+function hideLoader() {
+    document.getElementById('loader').style.display = 'none';
+    document.querySelector('.container').classList.remove('hide-content');
+}
+
+fetchData();
+
+    </script>
+</body>
+</html>
